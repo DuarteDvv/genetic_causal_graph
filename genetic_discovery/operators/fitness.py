@@ -14,11 +14,7 @@ def acyclicity_penalty(adj_matrix):
 
 
 def bicg_score(candidate_matrix, data, estimator) -> float:
-    """
-    candidate_matrix: Matriz de adjacência (Numpy)
-    data: O DataFrame com as colunas já nomeadas
-    estimator: O objeto BICGauss já inicializado
-    """
+
     nodes = list(data.columns)
     
     idx_from, idx_to = np.where(candidate_matrix == 1)
