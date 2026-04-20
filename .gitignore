@@ -1,0 +1,5 @@
+.venv*
+# Ignora pastas de cache do Python
+__pycache__/
+*.py[cod]
+*$py.class

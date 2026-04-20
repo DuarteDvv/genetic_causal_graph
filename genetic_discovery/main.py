@@ -1,81 +1,51 @@
-
-import random
-from genetic_discovery.operators.fitness import evaluate_population
-from genetic_discovery.operators.selection import select_parents
-from genetic_discovery.operators.crossover import crossover
-from genetic_discovery.operators.mutation import mutate
+import pygad
+import numpy as np
+from genetic_discovery.operators.fitness import build_advanced_fitness
+from genetic_discovery.operators.mutation import custom_mutation
 
 
-def genetic_discovery(
-        data,
-        max_generations: int, n_population: int, 
-        mutation_rate: float, n_childrens: int,
-        crossover_rate: float, initial_population: list
-        ):
+
+def genetic_discovery(data, n_nodes, matrix_initial_pop, num_generations=50, num_parents_mating=5, population_size=20, mutation_rate=0.2):
+
+    flattened_pop = [matrix.flatten() for matrix in matrix_initial_pop]
     
-    """"
-    Run the genetic algorithm for causal discovery
+    # preenche o restante da população com matrizes aleatórias
+    full_initial_pop = np.random.randint(0, 2, size=(population_size, n_nodes**2)) 
+    for i, individual in enumerate(flattened_pop): # 
+        full_initial_pop[i] = individual
 
-    input: 
-    - data: observed data
-    - max_generations: number of iterations of the genetic algorithm
-    - n_population: number of candidates selected in each generation
-    - mutation_rate: probability of mutating a candidate solution
-    - crossover_rate: probability of crossing over two candidate solutions
-    - initial_population: initial set of adjacency matrices representing candidate causal graphs
-    - n_childrens: number of children generated in each generation
 
-    output:
+    custom_fitness = build_advanced_fitness(
+        data=data, 
+        n_nodes=n_nodes, 
+        dag_penalty=1e6,      # Punição letal para ciclos
+        penalty_type='AIC'    # Ajuste esse tipo de penalidade se o grafo ficar muito vazio
+    )
 
-    - best_candidate: the best candidate solution found after max_generations
-  
-    """
+    ga_instance = pygad.GA(
+        initial_population=full_initial_pop, # populacao inicial
+        num_generations=num_generations, # n_gerações
+        num_parents_mating=num_parents_mating, # n_pais para cruzamento
+        fitness_func=custom_fitness, # fitness function
 
-    population = list(initial_population)
-    while len(population) < n_population:
-      
-        base = random.choice(initial_population)
-        population.append(mutate(base.copy(), mutation_rate=0.5))
+        sol_per_pop=population_size, # soluções (indivíduos) por população (se população for menor que sol_per_pop, o PyGAD irá gerar indivíduos aleatórios para completar)
+        num_genes=n_nodes**2, # temos nxn genes (parametros de uma matriz n x n)
+        gene_type=int, # estamos otimizando matrizes binarias nxn entao o gene é int
+        gene_space=[0, 1], # cada gene pode ser 0 ou 1
 
-    for _ in range(max_generations):
+        crossover_type="uniform", # tipo de crossover
 
-        childrens = []
-        while len(childrens) < n_childrens:
-            p1, p2 = select_parents(population, evaluate_population(population, data), k=3)
+        mutation_probability=mutation_rate, # taxa de mutação
+        mutation_type=custom_mutation, # função de mutação customizada
 
-            if random.random() < crossover_rate:
-                c1, c2 = crossover(p1, p2)
-            else:
-                c1, c2 = p1, p2
+        parent_selection_type="tournament", # tipo de seleção dos pais
+        K_tournament=2, # tamanho do torneio para seleção dos pais
 
-            if random.random() < mutation_rate:
-                c1 = mutate(c1, mutation_rate)
+        keep_elitism=1
+    )
 
-            if random.random() < mutation_rate:
-                c2 = mutate(c2, mutation_rate)
+    ga_instance.run()
+    solution, solution_fitness, _ = ga_instance.best_solution()
+    best_matrix = solution.reshape((n_nodes, n_nodes))
 
-            if len(childrens) < n_childrens:
-                childrens.append(c1)
-            if len(childrens) < n_childrens:
-                childrens.append(c2)
-        
-        all_candidates = population + childrens
-        fitness_scores = evaluate_population(all_candidates, data)
-
-        ranked = sorted(zip(all_candidates, fitness_scores), key=lambda x: x[1], reverse=True)
-
-        new_population = []
-        seen_hashes = set()
-        for cand, _ in ranked:
-            h = hash(cand.tobytes())
-            if h not in seen_hashes:
-                new_population.append(cand)
-                seen_hashes.add(h)
-                
-            if len(new_population) == n_population:
-                break
-
-        population = new_population
-            
-
-    return population[0]
+    return best_matrix

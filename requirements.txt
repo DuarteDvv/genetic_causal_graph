@@ -1,0 +1,9 @@
+networkx 
+matplotlib 
+pandas 
+tqdm 
+gcastle 
+torch 
+pgmpy 
+ipywidgets
+pygad
