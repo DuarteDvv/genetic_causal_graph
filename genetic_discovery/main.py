@@ -1,6 +1,6 @@
 import pygad
 import numpy as np
-from genetic_discovery.operators.fitness import build_advanced_fitness
+from genetic_discovery.operators.fitness import build_fitness
 from genetic_discovery.operators.mutation import custom_mutation
 
 
@@ -15,7 +15,7 @@ def genetic_discovery(data, n_nodes, matrix_initial_pop, num_generations=50, num
         full_initial_pop[i] = individual
 
 
-    custom_fitness = build_advanced_fitness(
+    custom_fitness = build_fitness(
         data=data, 
         n_nodes=n_nodes, 
         dag_penalty=1e6,      # Punição letal para ciclos
@@ -36,12 +36,14 @@ def genetic_discovery(data, n_nodes, matrix_initial_pop, num_generations=50, num
         crossover_type="uniform", # tipo de crossover
 
         mutation_probability=mutation_rate, # taxa de mutação
-        mutation_type=custom_mutation, # função de mutação customizada
+        mutation_type=custom_mutation, # função de mutação 
 
         parent_selection_type="tournament", # tipo de seleção dos pais
         K_tournament=2, # tamanho do torneio para seleção dos pais
 
-        keep_elitism=1
+        keep_elitism=1,
+
+        parallel_processing=["process",4] # usa 4 processos para paralelizar a avaliação de fitness
     )
 
     ga_instance.run()
