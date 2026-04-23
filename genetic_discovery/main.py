@@ -1,6 +1,7 @@
 import pygad
 import numpy as np
 from genetic_discovery.operators.fitness import build_fitness
+from genetic_discovery.operators.crossover import custom_crossover
 from genetic_discovery.operators.mutation import custom_mutation
 
 
@@ -9,9 +10,19 @@ def genetic_discovery(data, n_nodes, matrix_initial_pop, num_generations=50, num
 
     flattened_pop = [matrix.flatten() for matrix in matrix_initial_pop]
     
-    # preenche o restante da população com matrizes aleatórias
-    full_initial_pop = np.random.randint(0, 2, size=(population_size, n_nodes**2)) 
-    for i, individual in enumerate(flattened_pop): # 
+    full_initial_pop = []
+    for _ in range(population_size):
+        # matriz aleatória apenas no triângulo inferior para evitar ciclos
+        mat = np.tril(np.random.choice([0, 1], size=(n_nodes, n_nodes), p=[0.8, 0.2]), -1)
+
+        p = np.random.permutation(n_nodes)
+        mat = mat[p][:, p]
+        full_initial_pop.append(mat.flatten())
+
+    full_initial_pop = np.array(full_initial_pop)
+
+
+    for i, individual in enumerate(flattened_pop):
         full_initial_pop[i] = individual
 
 
@@ -33,7 +44,7 @@ def genetic_discovery(data, n_nodes, matrix_initial_pop, num_generations=50, num
         gene_type=int, # estamos otimizando matrizes binarias nxn entao o gene é int
         gene_space=[0, 1], # cada gene pode ser 0 ou 1
 
-        crossover_type="uniform", # tipo de crossover
+        crossover_type=custom_crossover, # crossover por no
 
         mutation_probability=mutation_rate, # taxa de mutação
         mutation_type=custom_mutation, # função de mutação 
@@ -41,9 +52,9 @@ def genetic_discovery(data, n_nodes, matrix_initial_pop, num_generations=50, num
         parent_selection_type="tournament", # tipo de seleção dos pais
         K_tournament=2, # tamanho do torneio para seleção dos pais
 
-        keep_elitism=1,
+        keep_elitism=2,
 
-        parallel_processing=["process",4] # usa 4 processos para paralelizar a avaliação de fitness
+        parallel_processing=["thread",8] # usa 4 threads
     )
 
     ga_instance.run()

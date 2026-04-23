@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.linalg import expm
+import networkx as nx
 
 class DagFitness:
     """
@@ -13,6 +13,7 @@ class DagFitness:
         self.penalty_type = penalty_type
         self.n_samples = self.data_np.shape[0]
         self.local_score_cache = {}
+
 
     def _get_local_score(self, target_idx, parent_indices):
         parents_tuple = tuple(sorted(parent_indices))
@@ -48,7 +49,7 @@ class DagFitness:
         if self.penalty_type == 'BIC':
             score = ll - (k / 2) * np.log(self.n_samples)
         elif self.penalty_type == 'AIC':
-            score = ll - k
+            score = ll - 0.5 * k
         else:
             raise ValueError("Use 'BIC' ou 'AIC'")
 
@@ -58,10 +59,9 @@ class DagFitness:
     def __call__(self, ga_instance, solution, solution_idx):
         matrix = solution.reshape((self.n_nodes, self.n_nodes))
 
-        # Penalidade de ciclos: h = trace(expm(A)) - n_nodes.
-        h = np.trace(expm(matrix)) - self.n_nodes
-        if h > 1e-5:
-            return -self.dag_penalty * (1 + h)
+        g = nx.DiGraph(matrix)
+        if not nx.is_directed_acyclic_graph(g):
+            return -self.dag_penalty
 
         total_score = 0.0
         for target in range(self.n_nodes):
