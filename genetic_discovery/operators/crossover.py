@@ -3,24 +3,7 @@ import random
 import networkx as nx
 
 
-def _repair_dag(matrix):
-    """Remove arestas ate obter um DAG valido."""
-    graph = nx.DiGraph(matrix)
-
-    while not nx.is_directed_acyclic_graph(graph):
-        cycle_edges = list(nx.find_cycle(graph, orientation="original"))
-        edge_to_remove = random.choice(cycle_edges)
-        graph.remove_edge(edge_to_remove[0], edge_to_remove[1])
-
-    repaired = nx.to_numpy_array(graph, dtype=int)
-    np.fill_diagonal(repaired, 0)
-    return repaired
-
 def custom_crossover(parents, offspring_size, ga_instance):
-    """
-    Crossover por no: para cada coluna (alvo), o filho herda todos os pais
-    de um dos dois genitores.
-    """
     n_nodes = int(np.sqrt(parents.shape[1]))
     offspring = np.empty(offspring_size, dtype=int)
 
@@ -28,18 +11,26 @@ def custom_crossover(parents, offspring_size, ga_instance):
         parent1 = parents[k % parents.shape[0]].reshape((n_nodes, n_nodes))
         parent2 = parents[(k + 1) % parents.shape[0]].reshape((n_nodes, n_nodes))
 
-        child = np.zeros((n_nodes, n_nodes), dtype=int)
+        # onde os dois pais concordam 
+        child_matrix = np.logical_and(parent1, parent2).astype(int)
+        G_child = nx.DiGraph(child_matrix)
 
-        for target_node in range(n_nodes):
+        # arestas que estão no Pai 1 OU no Pai 2, mas não em ambos
+        disputed_edges_p1 = [e for e in zip(*np.where(parent1 == 1)) if child_matrix[e] == 0]
+        disputed_edges_p2 = [e for e in zip(*np.where(parent2 == 1)) if child_matrix[e] == 0]
+        
+        # junta todas 
+        all_disputed = disputed_edges_p1 + disputed_edges_p2
+        random.shuffle(all_disputed)
+
+        # tenta adicionar as arestas disputadas se não formarem ciclo
+        for u, v in all_disputed:
+            # 50% de chance de herdar a aresta, mas só se não criar ciclo
             if random.random() < 0.5:
-                child[:, target_node] = parent1[:, target_node]
-            else:
-                child[:, target_node] = parent2[:, target_node]
+                
+                if not nx.has_path(G_child, v, u):
+                    G_child.add_edge(u, v)
 
-        np.fill_diagonal(child, 0)
-        child = _repair_dag(child)
-        offspring[k, :] = child.flatten()
+        offspring[k, :] = nx.to_numpy_array(G_child, dtype=int).flatten()
 
     return offspring
-    
-

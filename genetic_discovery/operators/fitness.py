@@ -1,10 +1,7 @@
 import numpy as np
-import networkx as nx
 
 class DagFitness:
-    """
-    Callable picklable para uso com multiprocessing no PyGAD.
-    """
+    
 
     def __init__(self, data, n_nodes, dag_penalty=1e6, penalty_type='BIC'):
         self.data_np = data.values if hasattr(data, 'values') else data
@@ -24,7 +21,7 @@ class DagFitness:
 
         y = self.data_np[:, target_idx]
 
-        # Regressao linear via minimos quadrados.
+        # regressao linear via minimos quadrados
         if len(parent_indices) == 0:
             rss = np.sum((y - np.mean(y)) ** 2)
             k = 1
@@ -49,7 +46,7 @@ class DagFitness:
         if self.penalty_type == 'BIC':
             score = ll - (k / 2) * np.log(self.n_samples)
         elif self.penalty_type == 'AIC':
-            score = ll - 0.5 * k
+            score = ll - 2*k
         else:
             raise ValueError("Use 'BIC' ou 'AIC'")
 
@@ -59,10 +56,6 @@ class DagFitness:
     def __call__(self, ga_instance, solution, solution_idx):
         matrix = solution.reshape((self.n_nodes, self.n_nodes))
 
-        g = nx.DiGraph(matrix)
-        if not nx.is_directed_acyclic_graph(g):
-            return -self.dag_penalty
-
         total_score = 0.0
         for target in range(self.n_nodes):
             parents = np.where(matrix[:, target] == 1)[0]
@@ -71,13 +64,12 @@ class DagFitness:
         return total_score
 
 
-def build_fitness(data, n_nodes, dag_penalty=1e6, penalty_type='BIC'):
+def build_fitness(data, n_nodes, penalty_type='BIC'):
     """
-    Fitness function para otimizacao de grafos causais usando BIC/AIC e penalidade para ciclos.
+    Fitness function
     """
     return DagFitness(
         data=data,
         n_nodes=n_nodes,
-        dag_penalty=dag_penalty,
         penalty_type=penalty_type,
     )

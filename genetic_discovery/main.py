@@ -4,7 +4,8 @@ from genetic_discovery.operators.fitness import build_fitness
 from genetic_discovery.operators.crossover import custom_crossover
 from genetic_discovery.operators.mutation import custom_mutation
 
-
+def on_gen(ga_instance):
+    print(f"Generation {ga_instance.generations_completed}: Best Fitness = {ga_instance.best_solution()[1]}")
 
 def genetic_discovery(data, n_nodes, matrix_initial_pop, num_generations=50, num_parents_mating=5, population_size=20, mutation_rate=0.2):
 
@@ -14,7 +15,6 @@ def genetic_discovery(data, n_nodes, matrix_initial_pop, num_generations=50, num
     for _ in range(population_size):
         # matriz aleatória apenas no triângulo inferior para evitar ciclos
         mat = np.tril(np.random.choice([0, 1], size=(n_nodes, n_nodes), p=[0.8, 0.2]), -1)
-
         p = np.random.permutation(n_nodes)
         mat = mat[p][:, p]
         full_initial_pop.append(mat.flatten())
@@ -29,8 +29,7 @@ def genetic_discovery(data, n_nodes, matrix_initial_pop, num_generations=50, num
     custom_fitness = build_fitness(
         data=data, 
         n_nodes=n_nodes, 
-        dag_penalty=1e6,      # Punição letal para ciclos
-        penalty_type='AIC'    # Ajuste esse tipo de penalidade se o grafo ficar muito vazio
+        penalty_type='AIC'    # "BIC" ou "AIC"
     )
 
     ga_instance = pygad.GA(
@@ -54,7 +53,8 @@ def genetic_discovery(data, n_nodes, matrix_initial_pop, num_generations=50, num
 
         keep_elitism=2,
 
-        parallel_processing=["thread",8] # usa 4 threads
+        parallel_processing=["thread",8], # usa 4 threads
+        on_generation=on_gen # callback a cada geração
     )
 
     ga_instance.run()
