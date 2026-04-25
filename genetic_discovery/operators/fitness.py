@@ -3,10 +3,9 @@ import numpy as np
 class DagFitness:
     
 
-    def __init__(self, data, n_nodes, dag_penalty=1e6, penalty_type='BIC'):
+    def __init__(self, data, n_nodes,  penalty_type='BIC'):
         self.data_np = data.values if hasattr(data, 'values') else data
         self.n_nodes = n_nodes
-        self.dag_penalty = dag_penalty
         self.penalty_type = penalty_type
         self.n_samples = self.data_np.shape[0]
         self.local_score_cache = {}
@@ -46,7 +45,7 @@ class DagFitness:
         if self.penalty_type == 'BIC':
             score = ll - (k / 2) * np.log(self.n_samples)
         elif self.penalty_type == 'AIC':
-            score = ll - 2*k
+            score = ll - 2 * k # antes era 2*k 
         else:
             raise ValueError("Use 'BIC' ou 'AIC'")
 

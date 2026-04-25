@@ -2,8 +2,9 @@ import numpy as np
 import random
 import networkx as nx
 
+# Basicamente, este crossover cria um filho que herda as arestas comuns dos pais e depois tenta adicionar as arestas disputadas (presentes em um pai mas não no outro) de forma aleatória, garantindo que o resultado final seja um DAG (sem ciclos).
 
-def custom_crossover(parents, offspring_size, ga_instance):
+def custom_crossing_over(parents, offspring_size, ga_instance):
     n_nodes = int(np.sqrt(parents.shape[1]))
     offspring = np.empty(offspring_size, dtype=int)
 
